@@ -840,3 +840,24 @@ img.zoomable {
     .lightbox-next { right: 0.6rem; }
     .lightbox-close { top: 0.75rem; right: 0.75rem; }
 }
+
+/* ================= PROJECT NOTE ================= */
+
+.project-note {
+    font-size: 0.8rem;
+    color: var(--grey);
+    background-color: var(--beige);
+    border-left: 2px solid var(--taupe);
+    padding: 0.65rem 0.9rem;
+    margin-bottom: 1.2rem;
+    line-height: 1.6;
+}
+
+.project-note strong {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--black);
+    margin-right: 0.35rem;
+}
