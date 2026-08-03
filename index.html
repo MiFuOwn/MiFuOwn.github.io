@@ -105,15 +105,17 @@
                             <span class="tech-tag">YOLOv8n</span>
                             <span class="tech-tag">Apple Depth Pro</span>
                             <span class="tech-tag">Gemini API</span>
+                            <span class="tech-tag">Threading + AsyncIO</span>
                             <span class="tech-tag">gTTS + FFmpeg</span>
                             <span class="tech-tag">C++ (ESP32-CAM)</span>
                         </div>
                         <ul class="project-details">
-                            <li>Built an assistive vision system for visually impaired users: an ESP32-CAM captures a frame, sends it as Base64 JSON to a FastAPI backend, and receives a Thai-language audio description in return.</li>
-                            <li>Designed a parallel inference pipeline — YOLOv8n object detection runs first, then Apple Depth Pro (metric depth) and Gemini (scene analysis) run concurrently via <code>ThreadPoolExecutor</code> instead of sequentially, cutting total processing time from ~6s to ~4s per frame.</li>
-                            <li>Computed real-world distance per detected object using 3-point depth sampling, then composed natural Thai speech text (position + object + distance) and synthesized it with gTTS, re-encoded through FFmpeg to 16kHz mono MP3 for playback on constrained hardware.</li>
-                            <li>Implemented an async background job queue (job_id + polling via <code>/status</code>) so the ESP32 can submit a frame and poll for completion without blocking, with per-stage timing breakdown (YOLO, depth, Gemini, TTS) exposed for debugging and tuning.</li>
-                            <li>Structured the backend as a modular FastAPI package (<code>config</code>, <code>models</code>, <code>speech</code>, <code>processing</code>, <code>routes</code>) with automatic 24-hour job cleanup and full Swagger documentation.</li>
+                            <li>Built a full assistive-vision system end-to-end: an ESP32-CAM captures a frame and posts it as Base64 JSON to a FastAPI backend, which runs a multi-stage AI pipeline and returns a Thai-language audio description for the user to hear.</li>
+                            <li>Designed an async, non-blocking job architecture — the API returns a <code>job_id</code> immediately and processes each frame as a background task, with job state tracked in a thread-locked in-memory store to prevent race conditions under concurrent requests from the hardware client.</li>
+                            <li>Optimized the inference pipeline for constrained hardware: images are downscaled (max 320px for detection, 224px for scene analysis) before inference, and YOLOv8n runs with tuned confidence/IoU thresholds and FP16 precision on CUDA, followed by Apple Depth Pro and Gemini scene analysis running concurrently via <code>ThreadPoolExecutor</code> to cut total latency by ~33%.</li>
+                            <li>Solved a real depth-sensing edge case with 3-point median depth sampling (center + ±20% offsets) instead of single-point sampling, with outlier clamping and object-aware distance capping, then applied natural-sounding dynamic rounding before composing the final spoken sentence — inserting urgent warning phrasing when an object is closer than 3.5m.</li>
+                            <li>Engineered a resilient scene-analysis prompt for Gemini (temperature=0.3, concise Thai-language instructions) with a rule-based fallback derived from YOLO detections whenever the Gemini call fails, so the system degrades gracefully instead of crashing.</li>
+                            <li>Compressed generated speech aggressively via FFmpeg (16kHz mono, 48kbps) for playback on microcontroller-grade hardware, and structured the backend as a modular FastAPI package with per-stage timing breakdowns, automatic 24-hour job cleanup, and full Swagger documentation.</li>
                         </ul>
                         <div class="project-note">
                             <strong>Note</strong> — Note: This is my senior capstone project, currently pending academic publication and patent filing. To protect intellectual property, the source code is temporarily kept in a private repository. However, I am more than happy to discuss the architecture or provide a live code walkthrough during an interview. If you need more information, please feel free to contact me.
@@ -186,19 +188,19 @@
                         <img src="images/Thai-Herbs.png" alt="Thai Herb CNN Classification">
                     </div>
                     <div class="project-info">
-                        <h3 class="project-title">Thai Herb Image Classification using CNN</h3>
+                        <h3 class="project-title">Thai Herb Classification — CNN + Gemini Vision</h3>
                         <div class="tech-stack">
                             <span class="tech-tag">Python</span>
                             <span class="tech-tag">TensorFlow</span>
                             <span class="tech-tag">Keras</span>
-                            <span class="tech-tag">Deep Learning</span>
+                            <span class="tech-tag">Gemini API</span>
+                            <span class="tech-tag">Pydantic</span>
                         </div>
                         <ul class="project-details">
                             <li>Built a multi-class CNN to classify Thai herbs (e.g. กะเพรา, ขมิ้นชัน) from leaf images — the project's core goal was not raw accuracy but systematically diagnosing and solving overfitting on a small, visually similar (mostly green-leaf) dataset.</li>
-                            <li>Structured the network as repeated feature-extraction blocks: <code>Conv2D</code> → <code>BatchNormalization</code> → ReLU → <code>MaxPooling2D</code> → <code>Dropout</code>, followed by a classification head (<code>Flatten</code> → Dense → Dropout → Dense/Softmax).</li>
-                            <li>Applied on-the-fly Data Augmentation with <code>ImageDataGenerator</code> — random rotation, zoom/shift, and horizontal flip — so the model sees varied viewpoints each epoch instead of memorizing fixed training images.</li>
-                            <li>Added Batch Normalization after each convolution block to reduce internal covariate shift, stabilize training, and allow a higher learning rate; combined with Dropout (20–50%) in both conv and dense layers to force the network to rely on robust, generalizable features rather than any single neuron.</li>
-                            <li>Compared model behavior with and without each regularization technique to isolate and evaluate its individual contribution to reducing the train/validation accuracy gap.</li>
+                            <li>Structured the network as repeated feature-extraction blocks: <code>Conv2D</code> → <code>BatchNormalization</code> → ReLU → <code>MaxPooling2D</code> → <code>Dropout</code>, followed by a classification head (<code>Flatten</code> → Dense → Dropout → Dense/Softmax), combined with on-the-fly Data Augmentation to reduce the train/validation accuracy gap.</li>
+                            <li>Extended the CNN with a Gemini Vision analysis layer for richer per-image insight, engineering a prompt with a one-shot example that constrains Gemini to return a single structured JSON object (herb name, confidence, freshness estimate, notes) via JSON-mode generation.</li>
+                            <li>Defined a Pydantic schema (<code>HerbAnalysis</code>) to validate Gemini's JSON response — including checking that the predicted herb name matches one of the CNN's known classes — and built an automatic fallback to the CNN classifier whenever the response fails validation or the API call errors, tagging each result with its source (<code>gemini</code> vs. <code>cnn_fallback</code>) for full transparency.</li>
                         </ul>
                         <a href="https://github.com/MiFuOwn/Multi-Class-Thai-Herbs-Classification.git" class="btn btn-ghost" target="_blank">
                             <svg viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
