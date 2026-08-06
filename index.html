@@ -99,23 +99,23 @@
                         <img src="images/diagram-export-2-12-2026-10_11_59-PM.png" alt="Seeing Eyes Platform">
                     </div>
                     <div class="project-info">
-                        <h3 class="project-title">Seeing Eyes — AI for Blind Assistive Platform</h3>
+                        <h3 class="project-title">Seeing Eyes — VisionAssist Platform</h3>
                         <div class="tech-stack">
+                            <span class="tech-tag">React Native (Expo)</span>
                             <span class="tech-tag">FastAPI</span>
+                            <span class="tech-tag">PostgreSQL</span>
+                            <span class="tech-tag">Docker</span>
                             <span class="tech-tag">YOLOv8n</span>
-                            <span class="tech-tag">Apple Depth Pro</span>
                             <span class="tech-tag">Gemini API</span>
-                            <span class="tech-tag">Threading + AsyncIO</span>
-                            <span class="tech-tag">gTTS + FFmpeg</span>
-                            <span class="tech-tag">C++ (ESP32-CAM)</span>
+                            <span class="tech-tag">C++ (ESP32)</span>
                         </div>
                         <ul class="project-details">
-                            <li>Built a full assistive-vision system end-to-end: an ESP32-CAM captures a frame and posts it as Base64 JSON to a FastAPI backend, which runs a multi-stage AI pipeline and returns a Thai-language audio description for the user to hear.</li>
-                            <li>Designed an async, non-blocking job architecture — the API returns a <code>job_id</code> immediately and processes each frame as a background task, with job state tracked in a thread-locked in-memory store to prevent race conditions under concurrent requests from the hardware client.</li>
-                            <li>Optimized the inference pipeline for constrained hardware: images are downscaled (max 320px for detection, 224px for scene analysis) before inference, and YOLOv8n runs with tuned confidence/IoU thresholds and FP16 precision on CUDA, followed by Apple Depth Pro and Gemini scene analysis running concurrently via <code>ThreadPoolExecutor</code> to cut total latency by ~33%.</li>
-                            <li>Solved a real depth-sensing edge case with 3-point median depth sampling (center + ±20% offsets) instead of single-point sampling, with outlier clamping and object-aware distance capping, then applied natural-sounding dynamic rounding before composing the final spoken sentence — inserting urgent warning phrasing when an object is closer than 3.5m.</li>
-                            <li>Engineered a resilient scene-analysis prompt for Gemini (temperature=0.3, concise Thai-language instructions) with a rule-based fallback derived from YOLO detections whenever the Gemini call fails, so the system degrades gracefully instead of crashing.</li>
-                            <li>Compressed generated speech aggressively via FFmpeg (16kHz mono, 48kbps) for playback on microcontroller-grade hardware, and structured the backend as a modular FastAPI package with per-stage timing breakdowns, automatic 24-hour job cleanup, and full Swagger documentation.</li>
+                            <li>Grew this from an AI backend prototype into a full 3-tier platform: an ESP32 smart camera (IoT edge device) → a FastAPI + PostgreSQL backend running the AI pipeline → a React Native (Expo) caregiver app, sharing one codebase across Web, iOS, and Android and tested on iOS/Android simulators.</li>
+                            <li>Built the caregiver app with Expo Router (file-based navigation), Zustand for state management, and NativeWind for styling, giving caregivers a live view of device status and AI-generated activity logs.</li>
+                            <li>Implemented token-based authentication and modeled a relational schema (<code>users</code>, <code>devices</code>, <code>job_logs</code>) in PostgreSQL via SQLAlchemy with async DB access.</li>
+                            <li>Containerized the entire stack (database, backend, frontend) with Docker Compose for one-command setup, and solved an async event-loop edge case by using a dedicated synchronous DB connection for background-thread writes.</li>
+                            <li>Optimized the inference pipeline for constrained hardware: images are downscaled before inference, and YOLOv8n runs with tuned confidence/IoU thresholds and FP16 precision on CUDA, followed by depth estimation and Gemini scene analysis running concurrently via <code>ThreadPoolExecutor</code> to cut total latency by ~33%.</li>
+                            <li>Solved a real depth-sensing edge case with 3-point median depth sampling instead of single-point sampling, and engineered a resilient Gemini scene-analysis prompt with a YOLO-based rule fallback so the system degrades gracefully instead of crashing.</li>
                         </ul>
                         <div class="project-note">
                             <strong>Note</strong> — Note: This is my senior capstone project, currently pending academic publication and patent filing. To protect intellectual property, the source code is temporarily kept in a private repository. However, I am more than happy to discuss the architecture or provide a live code walkthrough during an interview. If you need more information, please feel free to contact me.
